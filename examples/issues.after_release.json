@@ -1,0 +1,30 @@
+[
+  {
+    "number": 1,
+    "title": "Set up database schema",
+    "state": "closed",
+    "labels": ["agent:done"],
+    "body": "Create the users table.\n\n```agent-tasks\n```"
+  },
+  {
+    "number": 2,
+    "title": "Implement auth service",
+    "state": "open",
+    "labels": ["agent:todo"],
+    "body": "Depends on the schema.\n\n```agent-tasks\ndepends-on: 1\n```"
+  },
+  {
+    "number": 3,
+    "title": "Wire login endpoint",
+    "state": "open",
+    "labels": ["agent:blocked"],
+    "body": "Needs the auth service.\n\n```agent-tasks\ndepends-on: 2\n```"
+  },
+  {
+    "number": 4,
+    "title": "Add request logging",
+    "state": "open",
+    "labels": ["agent:todo"],
+    "body": "Independent branch, only needs the schema.\n\n```agent-tasks\ndepends-on: 1\n```"
+  }
+]

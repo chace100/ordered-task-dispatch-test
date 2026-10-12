@@ -1,0 +1,53 @@
+name: Task worker
+
+# A worker run claims ONE ready task (lowest-numbered agent:todo) and hands it
+# to a coding agent. Triggered when the orchestrator releases a task, and on a
+# periodic sweep to recover crashed/abandoned claims.
+on:
+  issues:
+    types: [labeled]
+  schedule:
+    - cron: "5,20,35,50 * * * *"
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Specific issue number to claim (optional)
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  # One worker at a time keeps claims race-free; remove to allow parallelism.
+  group: task-worker
+  cancel-in-progress: false
+
+jobs:
+  claim:
+    runs-on: ubuntu-latest
+    # Only react to the release label, not to every label change.
+    if: github.event_name != 'issues' || github.event.label.name == 'agent:todo'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Claim a ready task
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_ISSUE: ${{ inputs.issue }}
+          # Provide a token for your coding agent if you dispatch one remotely.
+          OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
+        run: |
+          extra=""
+          if [ -n "$REQUESTED_ISSUE" ]; then extra="--issue $REQUESTED_ISSUE"; fi
+          # Replace the --on-claim command with your agent dispatcher. The task
+          # brief and ids are exported as TASK_NUMBER / TASK_TITLE / TASK_BRIEF.
+          python tools/worker.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --apply $extra \
+            --on-claim 'python tools/dispatch_agent.py'

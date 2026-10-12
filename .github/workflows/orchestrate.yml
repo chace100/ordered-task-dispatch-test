@@ -1,0 +1,42 @@
+name: Task orchestrator
+
+# Recompute the dependency frontier whenever the graph can change, plus a
+# periodic sweep as a safety net and a manual trigger.
+on:
+  issues:
+    types: [closed, reopened, labeled, unlabeled, edited]
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      serial:
+        description: Release at most one task (strict ordering)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+# Never let two sweeps race on the same labels.
+concurrency:
+  group: orchestrator
+  cancel-in-progress: false
+
+jobs:
+  frontier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Recompute dependency frontier
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERIAL: ${{ inputs.serial }}
+        run: |
+          extra=""
+          if [ "$SERIAL" = "true" ]; then extra="--serial"; fi
+          python tools/orchestrator.py --repo "$GITHUB_REPOSITORY" --apply $extra

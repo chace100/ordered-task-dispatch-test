@@ -1,0 +1,31 @@
+[
+  {
+    "key": "schema",
+    "title": "Set up database schema",
+    "description": "Create the users and sessions tables with migrations."
+  },
+  {
+    "key": "logging",
+    "title": "Add request logging",
+    "description": "Structured request logs, independent of auth.",
+    "depends-on": ["schema"]
+  },
+  {
+    "key": "auth",
+    "title": "Implement auth service",
+    "description": "Hashing, token issuance and verification.",
+    "depends-on": ["schema"]
+  },
+  {
+    "key": "login",
+    "title": "Wire login endpoint",
+    "description": "POST /login and POST /logout using the auth service.",
+    "depends-on": ["auth"]
+  },
+  {
+    "key": "metrics",
+    "title": "Emit login metrics",
+    "description": "Count successful and failed logins.",
+    "depends-on": ["login", "logging"]
+  }
+]
