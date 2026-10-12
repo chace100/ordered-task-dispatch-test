@@ -1,8 +1,18 @@
 name: Task worker
 
 # A worker run claims ONE ready task (lowest-numbered agent:todo) and hands it
-# to a coding agent. Triggered when the orchestrator releases a task, and on a
-# periodic sweep to recover crashed/abandoned claims.
+# to a coding agent.
+#
+# Primary path: the `claim` job chained inside orchestrate.yml runs right after
+# a release, in the same workflow run. This file is the fallback + manual path:
+# the scheduled sweep recovers crashed/abandoned claims, a human adding
+# `agent:todo` triggers it directly (human events are not suppressed), and
+# workflow_dispatch lets you claim a specific issue by hand.
+#
+# Note: label events written by the orchestrator's GITHUB_TOKEN do NOT trigger
+# this workflow (GitHub suppresses GITHUB_TOKEN-triggered runs), which is why
+# the immediate claim is chained in orchestrate.yml instead of relying on the
+# `issues: [labeled]` trigger below.
 on:
   issues:
     types: [labeled]

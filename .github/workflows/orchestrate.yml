@@ -15,8 +15,9 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write
   issues: write
+  pull-requests: write
 
 # Never let two sweeps race on the same labels.
 concurrency:
@@ -26,6 +27,9 @@ concurrency:
 jobs:
   frontier:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,3 +44,33 @@ jobs:
           extra=""
           if [ "$SERIAL" = "true" ]; then extra="--serial"; fi
           python tools/orchestrator.py --repo "$GITHUB_REPOSITORY" --apply $extra
+
+  # Chain the worker in the SAME workflow run. Events produced by GITHUB_TOKEN
+  # (e.g. the 'labeled' on a released task) do not trigger other workflows, so
+  # the separate worker.yml alone would only ever run on its schedule. Running
+  # the claim here makes releases pick up immediately.
+  claim:
+    needs: frontier
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: task-worker
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Claim a ready task
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
+        run: |
+          python tools/worker.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --apply \
+            --on-claim 'python tools/dispatch_agent.py'
