@@ -135,6 +135,26 @@ A task's dependencies are satisfied when its **issue is closed**. Close the task
 (e.g. the PR says `Fixes #12`) and the orchestrator, triggered by the
 `issues: closed` event, releases the next one automatically.
 
+### Why the claim job is chained inside `orchestrate.yml`
+
+Events a workflow creates with the default `GITHUB_TOKEN` do **not** trigger
+other workflows (GitHub's anti-recursion rule). So a release performed by the
+orchestrator's `labeled` write never woke the separate `worker.yml` — that
+workflow only ran on its schedule. `orchestrate.yml` therefore runs the claim
+in a second job (`needs: frontier`) inside the same run, which is not
+suppressed. `worker.yml` remains the scheduled/manual fallback and still fires
+on a *human* adding `agent:todo`, because human events are not suppressed.
+
+### Token requirements (real repository)
+
+- **`GITHUB_TOKEN` inside Actions** needs `contents: write` (the worker checks
+  out and pushes branches), `issues: write` and `pull-requests: write` — set in
+  each workflow's `permissions:`. This is what the workflows declare.
+- **A personal token used from outside Actions** (e.g. to run the tools
+  locally) needs repository permissions **Contents / Issues / Pull requests:
+  Read and write**. Adding a repo to a fine-grained token is not enough on its
+  own — the per-permission access must also be set to Read and write.
+
 ## Design notes / invariants
 
 - **Fail closed.** An unknown or unparsed dependency number is treated as
