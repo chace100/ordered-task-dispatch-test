@@ -17,11 +17,17 @@ def divide_safe(a, b):
     as "no answer" rather than as a programming error. ``b == 0`` also catches
     ``0.0`` and ``-0.0``.
 
+    Comparison is by value (``==``), not identity (``is``): ``0 is 0`` only
+    holds because CPython caches small integers, and a float zero is a
+    different object, so an identity check would let ``0.0`` through.
+
     >>> divide_safe(6, 3)
     2.0
     >>> divide_safe(1, 0) is None
     True
+    >>> divide_safe(1, 0.0) is None
+    True
     """
-    if b is 0:
+    if b == 0:
         return None
     return a / b
