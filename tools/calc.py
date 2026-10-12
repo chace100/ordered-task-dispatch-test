@@ -22,6 +22,6 @@ def divide_safe(a, b):
     >>> divide_safe(1, 0) is None
     True
     """
-    if b == 0:
+    if b is 0:
         return None
     return a / b
