@@ -59,6 +59,8 @@ tools/
   worker.py          claim one ready task + re-verify deps
   dispatch_agent.py  hand the claimed brief to your coding agent
   seed_issues.py     create a batch of task issues from a plan file
+  auth_service.py    password hashing, token issuance and verification (stdlib)
+  login_endpoint.py  POST /login and POST /logout over the auth service
 tests/
   test_depgraph.py   13 tests over the ordering logic
 .github/workflows/
@@ -89,6 +91,10 @@ python tools/seed_issues.py --plan examples/plan.demo.json --dry-run
 
 # full end-to-end demo against an in-memory GitHub stub (real HTTP, --apply)
 bash examples/run_demo.sh
+
+# serve the login endpoints and try them
+python tools/login_endpoint.py --port 8080
+curl -s -X POST localhost:8080/login -d '{"username":"alice","password":"pw"}'
 
 # unit + integration tests
 python -m pytest tests/ -q
