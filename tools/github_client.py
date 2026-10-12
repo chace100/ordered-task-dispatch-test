@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import urllib.error
@@ -44,14 +45,22 @@ class GitHubClient:
 
     # -- transport ---------------------------------------------------------
 
-    def _api(self, method: str, path: str, payload: dict | None = None):
+    def _api(
+        self,
+        method: str,
+        path: str,
+        payload: dict | None = None,
+        tolerate: tuple[int, ...] = (),
+    ):
         # gh CLI only knows how to talk to api.github.com, so a custom API root
         # (tests, GitHub Enterprise) must go through urllib.
         if self._gh and self.token and self.api_root == API_ROOT:
-            return self._api_gh(method, path, payload)
-        return self._api_urllib(method, path, payload)
+            return self._api_gh(method, path, payload, tolerate)
+        return self._api_urllib(method, path, payload, tolerate)
 
-    def _api_gh(self, method: str, path: str, payload: dict | None):
+    def _api_gh(
+        self, method: str, path: str, payload: dict | None, tolerate: tuple[int, ...] = ()
+    ):
         cmd = ["gh", "api", "-X", method, path.lstrip("/")]
         if payload is not None:
             cmd += ["--input", "-"]
@@ -63,10 +72,16 @@ class GitHubClient:
             env={**os.environ, "GH_TOKEN": self.token or ""},
         )
         if proc.returncode != 0:
+            match = re.search(r"HTTP (\d{3})", proc.stderr)
+            code = int(match.group(1)) if match else None
+            if code in tolerate:
+                return None
             raise GitHubError(f"gh api {method} {path} failed: {proc.stderr.strip()}")
         return json.loads(proc.stdout) if proc.stdout.strip() else None
 
-    def _api_urllib(self, method: str, path: str, payload: dict | None):
+    def _api_urllib(
+        self, method: str, path: str, payload: dict | None, tolerate: tuple[int, ...] = ()
+    ):
         url = path if path.startswith("http") else f"{self.api_root}/{path.lstrip('/')}"
         data = json.dumps(payload).encode() if payload is not None else None
         req = urllib.request.Request(url, data=data, method=method)
@@ -79,6 +94,8 @@ class GitHubClient:
                 body = resp.read().decode()
                 return json.loads(body) if body.strip() else None
         except urllib.error.HTTPError as exc:
+            if exc.code in tolerate:
+                return None
             raise GitHubError(
                 f"{method} {url} -> {exc.code}: "
                 f"{exc.read().decode(errors='replace')}"
@@ -86,11 +103,17 @@ class GitHubClient:
 
     # -- writes (dry-run aware) --------------------------------------------
 
-    def _write(self, method: str, path: str, payload: dict | None = None) -> bool:
+    def _write(
+        self,
+        method: str,
+        path: str,
+        payload: dict | None = None,
+        tolerate: tuple[int, ...] = (),
+    ) -> bool:
         if self.dry_run:
             self._pending.append(f"{method} {path} {json.dumps(payload or {})}")
             return False
-        self._api(method, path, payload)
+        self._api(method, path, payload, tolerate)
         return True
 
     # -- high level --------------------------------------------------------
@@ -125,10 +148,13 @@ class GitHubClient:
 
     def set_workflow_label(self, issue: Issue, add: str, remove: list[str]) -> bool:
         label_path = f"repos/{self.repo}/issues/{issue.number}/labels"
-        if add:
+        # Only touch labels the issue actually carries: GitHub 404s on removing
+        # an absent label, and a stale snapshot can make that happen routinely.
+        present = set(issue.labels)
+        if add and add not in present:
             self._write("POST", label_path, {"labels": [add]})
         for lbl in remove:
-            if lbl == add:
+            if lbl == add or lbl not in present:
                 continue
             self._write("DELETE", f"{label_path}/{urllib.parse.quote(lbl, safe='')}")
         return not self.dry_run
@@ -148,6 +174,7 @@ class GitHubClient:
             "DELETE",
             f"repos/{self.repo}/issues/{number}/labels/"
             f"{urllib.parse.quote(label, safe='')}",
+            tolerate=(404,),
         )
 
     def create_issue(self, title: str, body: str, labels: list[str]) -> int | None:

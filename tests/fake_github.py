@@ -190,6 +190,10 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import unquote
 
             label = unquote(m.group(1))
+            if label not in issue["labels"]:
+                # Mirror GitHub: removing a label the issue does not carry 404s.
+                self._send(404, {"message": "Label does not exist"})
+                return
             issue["labels"] = [l for l in issue["labels"] if l != label]
             self._persist()
             self._send(200, [{"name": n} for n in issue["labels"]])

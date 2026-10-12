@@ -133,6 +133,33 @@ def test_worker_claims_ready_task_over_http(fake_github_server):
     assert "No claimable task" in proc3.stdout
 
 
+def test_claim_does_not_fail_when_blocked_label_absent(fake_github_server):
+    # Regression: a just-released task has agent:todo but NOT agent:blocked.
+    # The worker used to DELETE agent:blocked unconditionally and crash on the
+    # 404. Claiming must be idempotent about labels it does not carry.
+    fake_github.load_seed(str(ROOT / "examples" / "issues.after_release.json"))
+    assert "agent:blocked" not in labels(2)
+    assert "agent:todo" in labels(2)
+
+    proc = run("worker.py", "--repo", "testowner/testrepo", "--apply",
+               "--on-claim", "true", api_url=fake_github_server)
+    assert proc.returncode == 0, proc.stderr
+    assert "picked #2" in proc.stdout
+    assert "agent:claimed" in labels(2)
+    assert "agent:todo" not in labels(2)
+
+
+def test_remove_label_tolerates_absent_label(fake_github_server):
+    from github_client import GitHubClient
+
+    os.environ["GITHUB_API_URL"] = fake_github_server
+    fake_github.load_seed(str(ROOT / "examples" / "issues.after_release.json"))
+    client = GitHubClient("testowner/testrepo", token="dummy", dry_run=False)
+    # Label the issue does not have: must be a no-op, not a 404 crash.
+    assert client.remove_label(2, "agent:blocked") is True
+    assert "agent:blocked" not in labels(2)
+
+
 def test_worker_reverifies_and_reblocks_stale_dependency(fake_github_server):
     fake_github.load_seed(str(ROOT / "examples" / "issues.after_release.json"))
     # Make #2's dependency (#1) open again, simulating a stale release.
