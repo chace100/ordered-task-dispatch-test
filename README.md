@@ -61,9 +61,8 @@ tools/
   seed_issues.py     create a batch of task issues from a plan file
   hello.py           demo greeting helper (not part of the pipeline)
 tests/
-  conftest.py        puts tools/ on sys.path for the test modules
   test_depgraph.py   13 tests over the ordering logic
-  test_hello.py      3 tests over the demo greeting helper
+  test_hello.py      8 tests over the demo greeting helper
 .github/workflows/
   orchestrate.yml    issues closed/reopened/edited + cron → recompute frontier
   worker.yml         agent:todo labeled + cron → claim one task
@@ -97,9 +96,13 @@ bash examples/run_demo.sh
 python -m pytest tests/ -q
 ```
 
-The suite is run from the repository root: `tests/conftest.py` prepends `tools/`
-to `sys.path`, so `python -m pytest tests/ -q` (as above) is the reliable
-invocation. A bare `pytest tests/` from inside `tests/` will not find the tools.
+Each test module prepends `tools/` to `sys.path` itself rather than relying on a
+shared `conftest.py`, so a single module stays runnable on its own:
+
+```bash
+python -m pytest --noconftest tests/test_depgraph.py -q   # 13 passed
+python tests/test_hello.py                                # exit 0
+```
 
 ### Integration tests
 
