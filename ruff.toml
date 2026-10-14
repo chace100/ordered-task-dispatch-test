@@ -1,0 +1,10 @@
+# Ruff configuration; run with: python -m ruff check .
+# (install the tooling with: pip install -r requirements-dev.txt)
+
+line-length = 100
+
+[lint]
+# pycodestyle errors + pyflakes: the core lint set. The tools/ scripts
+# deliberately import from a sys.path-inserted directory, so those imports
+# come after module-level code and are guarded with `noqa: E402`.
+select = ["E", "F"]

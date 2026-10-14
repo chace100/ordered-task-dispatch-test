@@ -5,7 +5,6 @@ assignment, issue creation) rather than mocking the client, so payload shapes
 and the state machine are verified the way they run in CI.
 """
 
-import json
 import os
 import socket
 import subprocess

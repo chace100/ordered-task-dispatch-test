@@ -6,7 +6,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from depgraph import (  # noqa: E402
     BLOCKED_LABEL,
     TODO_LABEL,
-    Issue,
     apply_release,
     detect_cycles,
     parse_dependency_block,

@@ -1,0 +1,7 @@
+# Development tooling for this repository.
+# Install with: pip install -r requirements-dev.txt
+#
+# pytest  - unit + integration tests: python -m pytest tests/ -q
+# ruff    - lint:                    python -m ruff check .
+pytest==9.1.1
+ruff==0.17.0

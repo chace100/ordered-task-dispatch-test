@@ -44,7 +44,7 @@ def load_seed(path: str) -> None:
     global NEXT_NUMBER
     raw = json.loads(open(path).read())
     for item in raw:
-        labels = [l if isinstance(l, str) else l["name"] for l in item.get("labels", [])]
+        labels = [lbl if isinstance(lbl, str) else lbl["name"] for lbl in item.get("labels", [])]
         STATE[item["number"]] = {
             "number": item["number"],
             "title": item.get("title", ""),
@@ -194,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
                 # Mirror GitHub: removing a label the issue does not carry 404s.
                 self._send(404, {"message": "Label does not exist"})
                 return
-            issue["labels"] = [l for l in issue["labels"] if l != label]
+            issue["labels"] = [lbl for lbl in issue["labels"] if lbl != label]
             self._persist()
             self._send(200, [{"name": n} for n in issue["labels"]])
             return
