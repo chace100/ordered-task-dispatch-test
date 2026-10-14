@@ -16,11 +16,10 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "tests"))
-sys.path.insert(0, str(ROOT / "tools"))
+import fake_github
+from github_client import GitHubClient
 
-import fake_github  # noqa: E402
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _free_port() -> int:
@@ -151,8 +150,6 @@ def test_claim_does_not_fail_when_blocked_label_absent(fake_github_server):
 
 
 def test_remove_label_tolerates_absent_label(fake_github_server):
-    from github_client import GitHubClient
-
     os.environ["GITHUB_API_URL"] = fake_github_server
     fake_github.load_seed(str(ROOT / "examples" / "issues.after_release.json"))
     client = GitHubClient("testowner/testrepo", token="dummy", dry_run=False)

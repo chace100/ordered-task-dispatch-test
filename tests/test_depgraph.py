@@ -1,9 +1,4 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-
-from depgraph import (  # noqa: E402
+from depgraph import (
     BLOCKED_LABEL,
     TODO_LABEL,
     Issue,
