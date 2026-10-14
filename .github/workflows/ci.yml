@@ -15,5 +15,10 @@ jobs:
           python-version: "3.12"
       - run: pip install pytest
       - run: python -m pytest tests/ -q
+      - name: Each test module stays runnable on its own (no shared conftest)
+        run: |
+          for m in tests/test_*.py; do
+            python -m pytest --noconftest "$m" -q
+          done
       - name: Orchestrator self-check on the demo snapshot
         run: python tools/orchestrator.py --from-json examples/issues.demo.json --dry-run

@@ -62,7 +62,7 @@ tools/
   hello.py           demo greeting helper (not part of the pipeline)
 tests/
   test_depgraph.py   13 tests over the ordering logic
-  test_hello.py      8 tests over the demo greeting helper
+  test_hello.py      11 tests over the demo greeting helper
 .github/workflows/
   orchestrate.yml    issues closed/reopened/edited + cron → recompute frontier
   worker.yml         agent:todo labeled + cron → claim one task
@@ -96,13 +96,19 @@ bash examples/run_demo.sh
 python -m pytest tests/ -q
 ```
 
-Each test module prepends `tools/` to `sys.path` itself rather than relying on a
-shared `conftest.py`, so a single module stays runnable on its own:
+Each test module sets up its own `sys.path` — prepending `tools/` (and
+`tests/`, where the stub is imported) — rather than relying on a shared
+`conftest.py`, so a single module stays runnable on its own:
 
 ```bash
 python -m pytest --noconftest tests/test_depgraph.py -q   # 13 passed
-python tests/test_hello.py                                # exit 0
+python -m pytest --noconftest tests/test_hello.py -q      # 11 passed
+python -m pytest --noconftest tests/test_integration.py -q  # 8 passed
 ```
+
+(Run a module *through pytest* to check this: executing a test file directly —
+`python tests/test_hello.py` — defines the tests but never runs them, so its
+exit 0 proves nothing.)
 
 ### Integration tests
 

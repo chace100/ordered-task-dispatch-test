@@ -25,3 +25,10 @@ def test_hello_rejects_a_non_string_name(bad):
     # Fail closed: a non-string must error here, not render a plausible greeting.
     with pytest.raises(TypeError, match="name must be str"):
         hello(bad)
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t\n"])
+def test_hello_rejects_a_blank_name(blank):
+    # Same fail-closed rule: "hello, " is not a greeting, it is a silent failure.
+    with pytest.raises(ValueError, match="non-empty"):
+        hello(blank)
