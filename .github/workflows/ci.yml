@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest
+      - run: pip install -r requirements-dev.txt
       - run: python -m pytest tests/ -q
       - name: Orchestrator self-check on the demo snapshot
         run: python tools/orchestrator.py --from-json examples/issues.demo.json --dry-run
