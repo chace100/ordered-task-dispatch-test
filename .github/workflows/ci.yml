@@ -14,6 +14,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pytest
+      # Each test file must also pass when run alone (issue #29).
+      - run: python -m pytest tests/test_depgraph.py -q
+      - run: python -m pytest tests/test_integration.py -q
       - run: python -m pytest tests/ -q
       - name: Orchestrator self-check on the demo snapshot
         run: python tools/orchestrator.py --from-json examples/issues.demo.json --dry-run
