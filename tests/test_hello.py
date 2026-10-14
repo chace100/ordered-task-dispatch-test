@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from hello import hello, hello_many  # noqa: E402
+from hello import _is_blank, hello, hello_many  # noqa: E402
 
 
 def test_hello_defaults_to_world():
@@ -62,12 +62,33 @@ def test_hello_many_accepts_any_iterable_of_names():
     ]
 
 
+def test_hello_many_accepts_an_old_style_sequence():
+    # A __getitem__-only sequence has no __iter__, so isinstance(x, Iterable)
+    # is False, but a plain for loop consumes it — hello_many must too, or
+    # it is stricter than the loop-based implementation it replaces.
+    class OldStyle:
+        def __init__(self, items):
+            self._items = list(items)
+
+        def __getitem__(self, index):
+            if index >= len(self._items):
+                raise IndexError(index)
+            return self._items[index]
+
+    assert hello_many(OldStyle(["Ada", "", "Linus"])) == [
+        "hello, Ada",
+        "hello, Linus",
+    ]
+
+
 @pytest.mark.parametrize(
     "names", [["Ada", "Linus"], ["Ada", "", "Linus"], ["Ada", "Ada", "  "]]
 )
 def test_hello_many_matches_a_hand_rolled_loop(names):
-    # Each greeting is byte-for-byte hello(n) for the kept names.
-    assert hello_many(names) == [hello(n) for n in names if n.strip()]
+    # Each greeting is byte-for-byte hello(n) for the kept names, using the
+    # module's own blank rule so the expected value cannot go stale if the
+    # rule is ever tightened or widened.
+    assert hello_many(names) == [hello(n) for n in names if not _is_blank(n)]
 
 
 @pytest.mark.parametrize("bad", [None, 1, True, 3.5, ["chace"]])
